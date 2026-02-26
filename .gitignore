@@ -1,15 +1,26 @@
+# Dependencies
 node_modules/
-lib/**/*.js.map
+
+# Build outputs
 dist/
-.io-snapshot.pid
+io-snapshot-java/target/
+io-snapshot-java/dependency-reduced-pom.xml
 
-.iosnapshotrc.json
-.snap.bak
-snapshots/
-*.log
+# io-snapshot session files
+io-snapshot.pid
+.snaps.jsonl
 .io-snapshot-backups/
+**/*.snap.bak
+IOSnapshotProxy.java
 
-.env
-.DS_Store
+# Logs and config
+*.log
+.iosnapshotrc.json
+
+# IDEs
 .idea/
 .vscode/
+.DS_Store
+
+# Misc
+.env
