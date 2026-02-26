@@ -1,18 +1,14 @@
-# --- io-snapshot logic ---
 node_modules/
 lib/**/*.js.map
 dist/
 .io-snapshot.pid
 
-# --- Snapshot Data ---
-# We ignore the snapshot logs so they don't bloat the user's git repo.
-# In 2026, snapshots are considered "Temporary Observed Truth," not source code.
+.iosnapshotrc.json
 .snap.bak
-.snaps.jsonl
 snapshots/
 *.log
+.io-snapshot-backups/
 
-# --- Local Environment ---
 .env
 .DS_Store
 .idea/
