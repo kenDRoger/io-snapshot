@@ -121,9 +121,52 @@ Here are some common issues and how to solve them in simple terms.
 
 ## ⚠️ Requirements & Limitations
 
-- Functions must be **exported** to be captured.
+- Functions must be **exported** (for JS/TS) or annotated with **`@IOSnapshot`** (for Java) to be captured.
 - Data must be **serializable** (SuperJSON handles many complex types, but extremely complex circular references or native handles might be tricky).
 - Currently supports **ES Modules (ESM)** projects.
+- Java support requires **Java 11+** and **Maven** (for building the component).
+
+## ☕ Java Support
+
+`io-snapshot` also supports Java projects.
+
+### Usage
+
+1. **Add Annotation:** Add `@IOSnapshot` annotation to the methods you want to record:
+   ```java
+   import io.snapshot.IOSnapshot;
+
+   public class MyService {
+       @IOSnapshot
+       public String process(String input) {
+           return input.toUpperCase();
+       }
+   }
+   ```
+
+2. **Record Snapshots:**
+   ```bash
+   npx io-snapshot record "**/*.java"
+   ```
+
+3. **Interact with your application.**
+
+4. **Stop recording:**
+   ```bash
+   npx io-snapshot stop
+   ```
+
+5. **Refactor your code.**
+
+6. **Verify:**
+   ```bash
+   npx io-snapshot test "**/*.java"
+   ```
+
+### Environment Variables
+
+- **`IOSNAP_DAEMON_PORT`**: Port for the daemon (default: 9444)
+- **`IOSNAP_DAEMON_HOST`**: Daemon host (default: localhost)
 
 ## 📄 License
 

@@ -1,6 +1,6 @@
 {
   "name": "@kendroger/io-snapshot",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Capture and compare function behavior snapshots for zero-regression refactoring.",
   "keywords": [
     "refactor",
@@ -23,21 +23,24 @@
   "author": "kendroger",
   "type": "module",
   "exports": {
-    ".": "./lib/recorder.js",
-    "./recorder": "./lib/recorder.js",
-    "./verifier": "./lib/verifier.js",
-    "./transformer": "./lib/transformer.js",
-    "./daemon": "./lib/daemon.js",
-    "./constants": "./lib/constants.js",
-    "./config": "./lib/config.js",
-    "./logger": "./lib/logger.js"
+    ".": "./lib/core/recorder.js",
+    "./recorder": "./lib/core/recorder.js",
+    "./verifier": "./lib/core/verifier.js",
+    "./adapter": "./lib/adapter/index.js",
+    "./daemon": "./lib/core/daemon.js",
+    "./constants": "./lib/core/constants.js",
+    "./config": "./lib/core/config.js",
+    "./logger": "./lib/core/logger.js"
   },
-  "main": "./lib/recorder.js",
+  "main": "./lib/core/recorder.js",
   "bin": {
     "io-snapshot": "bin/cli.js"
   },
   "scripts": {
-    "test": "vitest"
+    "test": "vitest",
+    "build:java": "cd io-snapshot-java && mvn package -DskipTests",
+    "postinstall": "npm run build:java",
+    "clean": "rm -rf io-snapshot-java/target"
   },
   "dependencies": {
     "@babel/generator": "^7.23.0",
