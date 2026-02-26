@@ -1,0 +1,56 @@
+{
+  "name": "@kendroger/io-snapshot",
+  "version": "1.0.0",
+  "description": "Capture and compare function behavior snapshots for zero-regression refactoring.",
+  "keywords": [
+    "refactor",
+    "testing",
+    "semantic",
+    "automation",
+    "ai",
+    "diff",
+    "test"
+  ],
+  "homepage": "https://github.com/kenDRoger/io-snapshot#readme",
+  "bugs": {
+    "url": "https://github.com/kenDRoger/io-snapshot/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kenDRoger/io-snapshot.git"
+  },
+  "license": "MIT",
+  "author": "kendroger",
+  "type": "module",
+  "exports": {
+    ".": "./lib/recorder.js",
+    "./recorder": "./lib/recorder.js",
+    "./verifier": "./lib/verifier.js",
+    "./transformer": "./lib/transformer.js",
+    "./daemon": "./lib/daemon.js",
+    "./constants": "./lib/constants.js",
+    "./config": "./lib/config.js",
+    "./logger": "./lib/logger.js"
+  },
+  "main": "./lib/recorder.js",
+  "bin": {
+    "io-snapshot": "bin/cli.js"
+  },
+  "scripts": {
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@babel/generator": "^7.23.0",
+    "@babel/parser": "^7.23.0",
+    "@babel/traverse": "^7.23.0",
+    "@babel/types": "^7.23.0",
+    "commander": "^12.0.0",
+    "microdiff": "^1.5.0",
+    "superjson": "^2.2.1",
+    "tinyglobby": "^0.2.0",
+    "ts-morph": "^21.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
+  }
+}
