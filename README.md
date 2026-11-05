@@ -2,7 +2,6 @@
 
 `io-snapshot` is a powerful behavior-preservation tool designed for zero-regression refactoring. It captures the exact inputs and outputs of your functions during real-world execution and allows you to "replay" them later to ensure that your structural changes haven't introduced behavioral drift.
 
-[![npm version](https://img.shields.io/npm/v/io-snapshot.svg)](https://www.npmjs.com/package/@kendroger/io-snapshot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## 🚀 Why io-snapshot?
