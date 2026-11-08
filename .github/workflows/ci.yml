@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [publish-prep]
+  pull_request:
+    branches: [publish-prep]
+
+# Fail the build, don't leave stray processes around if a step is cancelled.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: typecheck + build + test + pack
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      IOSNAP_TEST_PORT: "9481" # dedicated port for the golden roundtrip suite
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck (strict)
+        run: npm run typecheck
+
+      - name: Build (dist/)
+        run: npm run build
+
+      - name: Golden roundtrip tests
+        run: npx vitest run
+
+      - name: Pack gate (what npm publish WOULD ship)
+        run: npm pack --dry-run
+
+      # Guard: the pack must never grow beyond the allowlist in `files`.
+      # A second pack run would duplicate work; this only verifies the surface.
+      - name: Pack surface check (no lib/ or src/ leaks)
+        run: |
+          OUT="$(npm pack --dry-run 2>&1)"
+          echo "$OUT"
+          if echo "$OUT" | grep -qE "^npm notice (lib|src)/"; then
+            echo "::error::pack contains lib/ or src/ — files allowlist leak"; exit 1
+          fi
