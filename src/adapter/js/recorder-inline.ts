@@ -18,7 +18,7 @@ export function getInlineRecorderCode(): string {
     }
     function _snap_record(fn, fnName) {
         return new Proxy(fn, {
-        async apply(target, thisArg, args) {
+        apply(target, thisArg, args) {
             var result = Reflect.apply(target, thisArg, args);
             var snapshot = {
             fnName: fnName,
@@ -37,7 +37,11 @@ export function getInlineRecorderCode(): string {
         }
         });
     }
-    window._snap_record = _snap_record;
+    if (typeof window !== 'undefined') {
+        window._snap_record = _snap_record;
+    } else {
+        (typeof globalThis !== 'undefined' ? globalThis : self)._snap_record = _snap_record;
+    }
 })();
 `;
 }

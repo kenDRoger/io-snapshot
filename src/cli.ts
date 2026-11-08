@@ -55,7 +55,7 @@ async function daemonRequest(endpoint: string, port: number, method = 'POST'): P
                 }
             });
         });
-        req.on('error', reject);
+        req.on('error', (err) => reject(new Error(`${(err as NodeJS.ErrnoException).code ?? 'EUNKNOWN'}: ${err.message}`)));
         req.end();
     });
 }
@@ -135,6 +135,10 @@ program
 
         log.step(1, 'Injecting recorder into files...');
         try {
+            // inline recorder template interpolates IOSNAP_DAEMON_PORT at injection
+            // time — must be set before the first adapter.inject call
+            process.env.IOSNAP_DAEMON_PORT = String(port);
+            process.env.IOSNAP_DAEMON_CORS = '*';
             const languages = await detectLanguages(target);
             for (const lang of languages) {
                 const adapter = await getAdapter(lang);

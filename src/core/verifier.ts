@@ -2,7 +2,7 @@ import SuperJSON from 'superjson';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import diff, { type Difference } from 'microdiff';
+import diff, { type Difference, type DifferenceChange } from 'microdiff';
 import { glob } from 'tinyglobby';
 import { SNAPSHOT_FILE } from './constants.js';
 import { loadConfig } from './config.js';
@@ -56,6 +56,21 @@ function readAllSnapshots(): SnapshotEntry[] | null {
         .filter((s): s is SnapshotEntry => s !== null);
 }
 
+/** microdiff only supports object roots; primitives compare by strict equality. */
+function diffResults(oldValue: unknown, newValue: unknown): Difference[] {
+    if (oldValue !== null && newValue !== null &&
+        typeof oldValue === 'object' && typeof newValue === 'object') {
+        return diff(oldValue as Record<string, unknown>, newValue as Record<string, unknown>);
+    }
+    if (oldValue === newValue) return [];
+    return [{
+        type: 'CHANGE',
+        path: [],
+        value: newValue,
+        oldValue
+    } satisfies DifferenceChange];
+}
+
 /** Replays every recorded snapshot of `fnName` through `newFn` and reports drift via microdiff. */
 export async function verify(newFn: (...args: unknown[]) => unknown, fnName: string): Promise<VerifySingleResult> {
     const config = loadConfig();
@@ -77,9 +92,9 @@ export async function verify(newFn: (...args: unknown[]) => unknown, fnName: str
 
     for (const snap of snapshots) {
         const newResult = await newFn(...snap.args);
-        // microdiff's own typings are narrower than its runtime (it handles scalar roots);
-        // lib/core/verifier.js relies on this, so the cast preserves behavior under strict TS.
-        const changes: Difference[] = diff(snap.result as unknown as Record<string, unknown>, newResult as unknown as Record<string, unknown>);
+        // microdiff throws on primitive roots ("in" on a string); lib/core/verifier.js
+        // relied on this crashing. Compare primitives directly, use microdiff for objects.
+        const changes: Difference[] = diffResults(snap.result, newResult);
 
         if (changes.length > 0) {
             log.error(`Drift detected in ${fnName}!`);

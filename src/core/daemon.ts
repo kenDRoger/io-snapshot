@@ -157,16 +157,19 @@ function startDaemon(port: number, timeoutMinutes: number, corsOptions?: CorsOpt
     });
 }
 
-/** Public entry: resolves port/timeout/CORS from args, env, config file, then defaults. */
+/** Public entry: resolves port/timeout/CORS from args, env, config file, then defaults.
+ *  Port precedence: explicit arg > IOSNAP_DAEMON_PORT env (set by the CLI's spawned child,
+ *  mirroring recorder.getPort()) > config file > default. */
 export function runDaemon(port?: number, timeout?: number, corsOptions?: CorsOptions): void {
     const config = loadConfig();
-    const actualPort = port || config.port || DEFAULT_PORT;
-    const actualTimeout = timeout || config.timeout || DEFAULT_TIMEOUT;
-    const corsEnv = process.env.SNAP_DAEMON_CORS || config.cors?.origin || '*';
+    const envPort = process.env.IOSNAP_DAEMON_PORT ? parseInt(process.env.IOSNAP_DAEMON_PORT, 10) : undefined;
+    const envTimeout = process.env.IOSNAP_DAEMON_TIMEOUT ? parseInt(process.env.IOSNAP_DAEMON_TIMEOUT, 10) : undefined;
+    const actualPort = port || envPort || config.port || DEFAULT_PORT;
+    const actualTimeout = timeout || envTimeout || config.timeout || DEFAULT_TIMEOUT;
+    const corsEnv = process.env.IOSNAP_DAEMON_CORS || process.env.SNAP_DAEMON_CORS || config.cors?.origin || '*';
     startDaemon(actualPort, actualTimeout, { origin: corsEnv });
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-    const config = loadConfig();
-    runDaemon(config.port || DEFAULT_PORT, config.timeout || DEFAULT_TIMEOUT);
+    runDaemon();
 }
