@@ -1,6 +1,8 @@
 package io.snapshot;
 
 import java.io.File;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -38,12 +40,18 @@ public class Main {
     private static void handleInject(String[] args) throws Exception {
         String filesArg = "";
         boolean force = false;
-
+        String proxyCode = "";
+        
         for (int i = 1; i < args.length; i++) {
             if (args[i].startsWith("--files=")) {
                 filesArg = args[i].substring(8);
             } else if (args[i].equals("--force")) {
                 force = true;
+            } else if (args[i].startsWith("--proxy-file=")) {
+                String proxyFilePath = args[i].substring(13);
+                proxyCode = new String(Files.readAllBytes(Paths.get(proxyFilePath)));
+            } else if (args[i].startsWith("--proxy=")) {
+                proxyCode = URLDecoder.decode(args[i].substring(8), StandardCharsets.UTF_8.toString());
             }
         }
 
@@ -54,17 +62,17 @@ public class Main {
 
         String[] files = filesArg.split(",");
         System.out.println("Injecting " + files.length + " Java files...");
-
-        IOSnapshotProcessor processor = new IOSnapshotProcessor(force);
+        
+        IOSnapshotProcessor processor = new IOSnapshotProcessor(force, proxyCode);
         processor.process(files);
-
+        
         System.out.println("Injection complete.");
     }
 
     private static void handleRestore(String[] args) throws Exception {
         String filesArg = "";
         boolean keepSnapshots = false;
-
+        
         for (int i = 1; i < args.length; i++) {
             if (args[i].startsWith("--files=")) {
                 filesArg = args[i].substring(8);
@@ -80,8 +88,7 @@ public class Main {
 
         String[] files = filesArg.split(",");
         System.out.println("Restoring " + files.length + " Java files...");
-
-        // Restore from backups
+        
         for (String file : files) {
             String backupPath = file + ".snap.bak";
             File backup = new File(backupPath);
@@ -90,14 +97,14 @@ public class Main {
                 System.out.println("Restored: " + file);
             }
         }
-
+        
         System.out.println("Restore complete.");
     }
 
     private static void printUsage() {
         System.out.println("Usage: java -jar io-snapshot-java.jar <command>");
         System.out.println("Commands:");
-        System.out.println("  inject --files=<file1,file2> [--force]");
+        System.out.println("  inject --files=<file1,file2> [--proxy-file=<path>] [--force]");
         System.out.println("  restore --files=<file1,file2> [--keep-snapshots]");
     }
 }

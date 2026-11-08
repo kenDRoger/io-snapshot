@@ -9,7 +9,7 @@ import { SNAPSHOT_FILE } from '../lib/core/constants.js';
 import { loadConfig, validatePort, validateTimeout, validateFilePattern } from '../lib/core/config.js';
 import { log } from '../lib/core/logger.js';
 import { getPidFilePath, ensureTempSessionDir } from '../lib/core/paths.js';
-import { detectLanguage, getAdapter } from '../lib/adapter/index.js';
+import { detectLanguages, getAdapter, DEFAULT_PATTERNS } from '../lib/adapter/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -64,9 +64,12 @@ program
         try {
             if (target) validateFilePattern(target);
             
-            const language = await detectLanguage(target);
-            const adapter = await getAdapter(language);
-            await adapter.inject(target, opts.force);
+            const languages = await detectLanguages(target);
+            for (const lang of languages) {
+                const adapter = await getAdapter(lang);
+                const pattern = target || DEFAULT_PATTERNS[lang];
+                await adapter.inject(pattern, opts.force);
+            }
         } catch (error) {
             log.error(error.message);
             process.exit(1);
@@ -120,9 +123,12 @@ program
 
         log.step(1, 'Injecting recorder into files...');
         try {
-            const language = await detectLanguage(target);
-            const adapter = await getAdapter(language);
-            await adapter.inject(target, opts.force);
+            const languages = await detectLanguages(target);
+            for (const lang of languages) {
+                const adapter = await getAdapter(lang);
+                const pattern = target || DEFAULT_PATTERNS[lang];
+                await adapter.inject(pattern, opts.force);
+            }
         } catch (error) {
             log.error(`Injection failed: ${error.message}`);
             process.exit(1);
@@ -204,9 +210,11 @@ program
 
         log.step(3, 'Restoring original code...');
         try {
-            const language = await detectLanguage();
-            const adapter = await getAdapter(language);
-            await adapter.restore(null, opts.keepSnapshots || true);
+            const languages = await detectLanguages();
+            for (const lang of languages) {
+                const adapter = await getAdapter(lang);
+                await adapter.restore(null, opts.keepSnapshots || true);
+            }
         } catch (error) {
             log.error(`Restore failed: ${error.message}`);
         }
@@ -245,9 +253,11 @@ program
         try {
             if (target) validateFilePattern(target);
             
-            const language = await detectLanguage(target);
-            const adapter = await getAdapter(language);
-            await adapter.restore(target, false);
+            const languages = await detectLanguages(target);
+            for (const lang of languages) {
+                const adapter = await getAdapter(lang);
+                await adapter.restore(target, false);
+            }
         } catch (error) {
             log.error(error.message);
             process.exit(1);
