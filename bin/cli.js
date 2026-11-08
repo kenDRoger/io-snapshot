@@ -5,10 +5,11 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import http from 'http';
-import { SNAPSHOT_FILE } from '../lib/constants.js';
-import { loadConfig, validatePort, validateTimeout, validateFilePattern } from '../lib/config.js';
-import { log } from '../lib/logger.js';
-import { getPidFilePath, ensureTempSessionDir } from '../lib/paths.js';
+import { SNAPSHOT_FILE } from '../lib/core/constants.js';
+import { loadConfig, validatePort, validateTimeout, validateFilePattern } from '../lib/core/config.js';
+import { log } from '../lib/core/logger.js';
+import { getPidFilePath, ensureTempSessionDir } from '../lib/core/paths.js';
+import { detectLanguages, getAdapter, DEFAULT_PATTERNS } from '../lib/adapter/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -62,13 +63,17 @@ program
     .action(async (target, opts) => {
         try {
             if (target) validateFilePattern(target);
+            
+            const languages = await detectLanguages(target);
+            for (const lang of languages) {
+                const adapter = await getAdapter(lang);
+                const pattern = target || DEFAULT_PATTERNS[lang];
+                await adapter.inject(pattern, opts.force);
+            }
         } catch (error) {
             log.error(error.message);
             process.exit(1);
         }
-
-        const { injectRecorder } = await import('../lib/transformer.js');
-        await injectRecorder(target, opts.force);
     });
 
 program
@@ -96,15 +101,6 @@ program
         log.info('         THEN start your app!');
         log.divider();
 
-        log.workflow([
-            'io-snapshot record  → Inject recorder + start background daemon',
-            'npm run dev         → Start your app (daemon MUST be running)',
-            'Interact with app   → Use your app to capture real-world data',
-            'io-snapshot stop    → Stop recording and restore your original code',
-            'Modify your code    → Perform your refactoring or changes',
-            'io-snapshot test    → Verify new code against captured snapshots'
-        ]);
-
         const snapshotPath = path.resolve(process.cwd(), SNAPSHOT_FILE);
         fs.writeFileSync(snapshotPath, '');
         log.info('Cleared previous snapshot file for a fresh session.');
@@ -126,8 +122,17 @@ program
         }
 
         log.step(1, 'Injecting recorder into files...');
-        const { injectRecorder } = await import('../lib/transformer.js');
-        await injectRecorder(target, opts.force);
+        try {
+            const languages = await detectLanguages(target);
+            for (const lang of languages) {
+                const adapter = await getAdapter(lang);
+                const pattern = target || DEFAULT_PATTERNS[lang];
+                await adapter.inject(pattern, opts.force);
+            }
+        } catch (error) {
+            log.error(`Injection failed: ${error.message}`);
+            process.exit(1);
+        }
 
         log.step(2, 'Starting daemon...');
         const env = {
@@ -136,7 +141,7 @@ program
             IOSNAP_DAEMON_CORS: '*'
         };
 
-        const child = spawn(process.execPath, [path.join(__dirname, '../lib/daemon.js')], {
+        const child = spawn(process.execPath, [path.join(__dirname, '../lib/core/daemon.js')], {
             cwd: process.cwd(),
             stdio: 'ignore',
             env,
@@ -156,7 +161,7 @@ program
             log.success('Recording active.');
             log.info(`Snapshots will be saved to: ${snapshotPath}`);
             log.divider();
-            log.success('NOW START YOUR APP (e.g., npm run dev)');
+            log.success('NOW START YOUR APP');
             log.info('Interact with your app to capture snapshots.');
             log.info('Run "io-snapshot stop" when done to restore original code.');
             log.divider();
@@ -170,6 +175,7 @@ program
     .command('stop')
     .description('Stop recording, stop daemon, and restore original code')
     .option('-p, --port <port>', 'Port where the daemon is running')
+    .option('--keep-snapshots', 'Keep the snapshot data file')
     .action(async (opts) => {
         try {
             if (opts.port) validatePort(opts.port);
@@ -203,8 +209,15 @@ program
         }
 
         log.step(3, 'Restoring original code...');
-        const { restore } = await import('../lib/transformer.js');
-        await restore(null, true);
+        try {
+            const languages = await detectLanguages();
+            for (const lang of languages) {
+                const adapter = await getAdapter(lang);
+                await adapter.restore(null, opts.keepSnapshots || true);
+            }
+        } catch (error) {
+            log.error(`Restore failed: ${error.message}`);
+        }
 
         const snapshotPath = path.resolve(process.cwd(), SNAPSHOT_FILE);
         if (fs.existsSync(snapshotPath)) {
@@ -213,7 +226,7 @@ program
         }
 
         log.divider();
-        log.success('Original code restored. Snapshots preserved for testing.');
+        log.success('Original code restored.');
         log.info('Run "io-snapshot test" to verify your code changes.');
         log.divider();
     });
@@ -229,7 +242,7 @@ program
             process.exit(1);
         }
 
-        const { verifyDir } = await import('../lib/verifier.js');
+        const { verifyDir } = await import('../lib/core/verifier.js');
         await verifyDir(target);
     });
 
@@ -239,13 +252,16 @@ program
     .action(async (target) => {
         try {
             if (target) validateFilePattern(target);
+            
+            const languages = await detectLanguages(target);
+            for (const lang of languages) {
+                const adapter = await getAdapter(lang);
+                await adapter.restore(target, false);
+            }
         } catch (error) {
             log.error(error.message);
             process.exit(1);
         }
-
-        const { restore } = await import('../lib/transformer.js');
-        await restore(target);
     });
 
 program.parse();
